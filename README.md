@@ -1,80 +1,89 @@
-# Sky Hopper 🦘
+# Veggie Jump 🥦🥕🍅
 
-A Doodle-Jump-style endless platformer. Steer left and right to land on platforms and climb as high as you can — fall off the bottom and it's game over.
+Chopo is eating the veggie family — help them escape! Steer left and right to land on platforms and climb as high as you can. Fall to the bottom (or let Chopo catch you) and it's game over.
 
-## How to play
+This repo contains the **C# scripts** for the game. Since a full Unity project includes large auto-generated folders (`Library/`, `Temp/`, etc.) that shouldn't go in git, your friend needs to create the actual Unity project once, then drop these scripts in.
 
-- **Desktop:** Arrow keys or `A` / `D` to move left/right
-- **Mobile/touch:** Tap and hold the left or right half of the screen
+## One-time setup (whoever has Unity installed does this)
 
-## Running it locally
+1. Open Unity Hub → **New Project** → **2D (Core)** template → name it `VeggieJump`
+2. Close Unity, then copy the contents of this repo's `Assets/Scripts/` folder into your new project's `Assets/Scripts/` folder (overwrite the empty one Unity made)
+3. Also copy `.gitignore` and `.gitattributes` from this repo into your new Unity project's root (replace Unity's defaults)
+4. Open the project in Unity — it'll recompile the scripts automatically
 
-No build tools, no npm install — just open the file:
+## Scene setup (wiring it up in the Editor)
 
-```bash
-git clone <your-repo-url>
-cd doodle-jump
-open index.html   # or just double-click it in your file explorer
-```
+These scripts assume the following GameObjects exist in your scene. None of this can be scaffolded from text since Unity scenes are editor-built — this is where you and your friend will spend your first session together:
 
-That's it. It's plain HTML/CSS/JS, so it runs straight from the file system.
+| GameObject | Components to add | Notes |
+|---|---|---|
+| **Player** | `SpriteRenderer`, `Rigidbody2D` (Gravity Scale ~3), `BoxCollider2D` or `CircleCollider2D`, `PlayerController.cs` | Tag it `Player`. Freeze Z rotation in Rigidbody2D constraints. |
+| **PlatformNormal** (prefab) | `SpriteRenderer`, `BoxCollider2D` (set **Is Trigger** ✅), `PlatformBehaviour.cs` (Type = Normal) | Drag into `Assets/Prefabs/` to make it a prefab |
+| **PlatformMoving** (prefab) | Same as above, `PlatformBehaviour.cs` (Type = Moving) | |
+| **PlatformSpawner** (empty GameObject) | `PlatformSpawner.cs` | Drag both platform prefabs + Player + Main Camera into the Inspector fields |
+| **Chopo** | `SpriteRenderer`, `BoxCollider2D` (Is Trigger ✅), `ChopoChaser.cs` | Tag it `Chopo`. Start it below the screen. |
+| **Main Camera** | `CameraFollow.cs` | Set to Orthographic. Drag Player in. |
+| **GameManager** (empty GameObject) | `GameManager.cs` | Drag Player in. |
+| **InputManager** (empty GameObject) | `InputManager.cs` | No fields to wire |
+| **Canvas → UIManager** | `UIManager.cs` | Drag in your Score Text, Game Over Panel, Final Score Text, Restart Button |
+
+Tags you'll need to create (Inspector → Tag → Add Tag): `Player`, `Chopo`. Layers are optional for this scope but useful later if you want collision layers to ignore Chopo passing through platforms.
 
 ## Project structure
 
 ```
-doodle-jump/
-├── index.html        # Page shell + canvas
-├── style.css         # Visual styling
-├── src/
-│   ├── input.js      # Keyboard + touch input handling
-│   ├── platforms.js  # Platform generation, movement, drawing
-│   ├── player.js     # Player physics, drawing, collision
-│   └── main.js        # Game loop that ties everything together
-└── assets/           # (sprites/sounds go here later)
+Assets/
+├── Scripts/
+│   ├── Input/
+│   │   └── InputManager.cs      # keyboard + touch steering
+│   ├── Player/
+│   │   └── PlayerController.cs  # movement, bounce, screen wrap, death
+│   ├── Platforms/
+│   │   ├── PlatformBehaviour.cs # per-platform bounce + moving drift
+│   │   └── PlatformSpawner.cs   # procedural generation + recycling
+│   ├── Enemy/
+│   │   └── ChopoChaser.cs       # rises from below, catches player = game over
+│   ├── Core/
+│   │   ├── GameManager.cs       # score, game over, restart
+│   │   └── CameraFollow.cs      # upward-only camera scroll
+│   └── UI/
+│       └── UIManager.cs         # HUD + game over panel wiring
+├── Prefabs/    (empty for now - platforms go here once you build them)
+├── Sprites/    (empty for now - drop veggie/Chopo art here)
+└── Scenes/     (your main game scene goes here)
 ```
-
-Scripts load in this order in `index.html`: `input.js` → `platforms.js` → `player.js` → `main.js`. Keep that order if you add new files that depend on each other.
 
 ## Working on this with a friend
 
-Suggested workflow so you don't overwrite each other's work:
-
-1. **Push this repo to GitHub** (see below) and add your friend as a collaborator.
-2. **Never commit directly to `main`.** Each of you works on a feature branch:
-   ```bash
-   git checkout -b feature/moving-platforms
-   # make changes
-   git add .
-   git commit -m "Add moving platform type"
-   git push origin feature/moving-platforms
-   ```
-3. **Open a Pull Request on GitHub** when a feature is ready, and have the other person review/merge it.
-4. **Pull before you start working** each session:
-   ```bash
-   git checkout main
-   git pull
-   ```
-
-Splitting work by file works well here since the codebase is modular:
-- One person owns `player.js` + `input.js` (movement/physics feel)
-- The other owns `platforms.js` (level generation, platform types, difficulty)
-- Collaborate on `main.js` together since it ties both sides together
-
-## Pushing to GitHub
+Same branch workflow as before, just with Unity's quirks in mind:
 
 ```bash
-# Create a new repo on github.com first, then:
-git remote add origin <your-repo-url>
-git branch -M main
-git push -u origin main
+git checkout -b feature/your-feature-name
+# make changes in Unity
+git add .
+git commit -m "Describe what changed"
+git push origin feature/your-feature-name
 ```
 
-## Ideas for next features
+**Unity-specific gotchas for two people sharing a project:**
 
-- [ ] Score persistence (localStorage high score)
-- [ ] Breakable / disappearing platforms
+- **Only one person should edit a Scene file at a time.** `.unity` scene files are very prone to merge conflicts since they're large serialized files. Whoever isn't editing the scene should work in Scripts, Prefabs, or Sprites instead.
+- **Set Unity to Visible Meta Files + Force Text serialization**: `Edit → Project Settings → Editor → Asset Serialization → Force Text`, and `Version Control Mode → Visible Meta Files`. Do this **before** your first commit — it makes `.meta` files and prefabs git-diffable instead of binary blobs.
+- **Use Git LFS** for sprites/audio (already configured in `.gitattributes`) — run `git lfs install` once per machine before pulling art assets.
+
+## Suggested split
+
+- One person: `PlayerController` + `InputManager` (movement feel)
+- Other person: `PlatformSpawner` + `PlatformBehaviour` + `ChopoChaser` (difficulty/pacing)
+- Together: scene wiring, `GameManager`, UI
+
+## Roadmap ideas
+
+- [ ] Swap placeholder shapes for veggie sprites (carrot, tomato, broccoli...) and a Chopo character
+- [ ] Crumbling/breakable platforms (enum value already reserved in `PlatformBehaviour`)
 - [ ] Springs/boosters for bigger jumps
-- [ ] Enemies to avoid
-- [ ] Sprite art instead of placeholder shapes
-- [ ] Sound effects on jump/game over
-- [ ] Difficulty scaling (platforms get sparser as you climb)
+- [ ] Chopo speeds up over time (already does — tune `speedIncreasePerSecond`)
+- [ ] Mobile build settings (Android/iOS) + app icon
+- [ ] Sound effects: jump, Chopo growl, game over
+- [ ] High score saved with `PlayerPrefs`
+- [ ] Simple title screen / character select (pick which veggie you play as)
