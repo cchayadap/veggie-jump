@@ -1,4 +1,4 @@
-# Veggie Jump 🥦🥕🍅
+# Veggie Jump
 
 Chopo is eating the veggie family — help them escape! Steer left and right to land on platforms and climb as high as you can. Fall to the bottom (or let Chopo catch you) and it's game over.
 
